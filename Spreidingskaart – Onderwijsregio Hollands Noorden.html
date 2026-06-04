@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spreidingskaart – Onderwijsregio Hollands Noorden</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --donkerblauw: #003160;
+    --roze: #ecafbd;
+    --beige: #e7e2d3;
+    --wit: #ffffff;
+    --tekst: #1a2535;
+    --blauw-mid: #1a5494;
+    --lichtgrijs: #ede9df;
+    --goud: #d4960a;
+    --goud-licht: #f5c842;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--beige); color: var(--tekst); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  header {
+    background: var(--donkerblauw);
+    color: white; padding: 13px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 4px 20px rgba(0,49,96,0.4); z-index: 1000; flex-shrink: 0;
+  }
+  .logo-area { display: flex; align-items: center; gap: 12px; }
+  .logo-mark {
+    width: 40px; height: 40px; background: var(--roze); border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 13px;
+    color: var(--donkerblauw); flex-shrink: 0; letter-spacing: -0.5px;
+  }
+  header h1 { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1.05rem; line-height: 1.2; }
+  header p.sub { font-size: 0.73rem; opacity: 0.6; margin-top: 2px; }
+
+  .header-stats { display: flex; gap: 10px; align-items: center; }
+  .stat-pill {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 50px; padding: 5px 18px; text-align: center;
+  }
+  .stat-pill .num { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.35rem; color: var(--roze); display: block; line-height: 1; }
+  .stat-pill .lbl { font-size: 0.65rem; opacity: 0.7; white-space: nowrap; }
+
+  #wrap { display: flex; flex: 1; overflow: hidden; }
+  #map { flex: 1; z-index: 1; }
+
+  #sidebar {
+    width: 230px; background: var(--wit); border-left: 2px solid var(--beige);
+    padding: 16px 14px; overflow-y: auto; display: flex; flex-direction: column;
+    gap: 14px; z-index: 500; flex-shrink: 0;
+  }
+
+  .sidebar-title {
+    font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.75rem;
+    color: var(--donkerblauw); text-transform: uppercase; letter-spacing: 0.09em;
+    padding-bottom: 7px; border-bottom: 2px solid var(--beige);
+  }
+
+  /* Tab switcher */
+  .tab-bar { display: flex; gap: 4px; }
+  .tab-btn {
+    flex: 1; padding: 6px 4px; font-family: 'DM Sans', sans-serif; font-size: 0.72rem;
+    font-weight: 500; border: 1.5px solid var(--beige); border-radius: 6px;
+    background: var(--wit); color: #888; cursor: pointer; transition: all 0.15s;
+    text-align: center;
+  }
+  .tab-btn.active { background: var(--donkerblauw); color: white; border-color: var(--donkerblauw); font-weight: 600; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Legend */
+  .legend-item { display: flex; align-items: center; gap: 9px; font-size: 0.75rem; color: var(--tekst); margin-bottom: 8px; }
+  .legend-circle { border-radius: 50%; opacity: 0.85; flex-shrink: 0; }
+
+  /* Filter */
+  .filter-label { font-size: 0.7rem; color: #888; margin-bottom: 4px; }
+  input[type=range] { width: 100%; accent-color: var(--donkerblauw); cursor: pointer; }
+  .range-vals { display: flex; justify-content: space-between; font-size: 0.68rem; color: #999; margin-top: 1px; }
+
+  /* Aanbevelingen */
+  .advies-card {
+    border-radius: 10px; padding: 11px 12px; margin-bottom: 8px;
+    cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+    border: 2px solid transparent;
+    position: relative; overflow: hidden;
+  }
+  .advies-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,49,96,0.15); }
+  .advies-card.rank-1 { background: linear-gradient(135deg, #003160 0%, #1a5494 100%); color: white; border-color: #003160; }
+  .advies-card.rank-2 { background: linear-gradient(135deg, #1a5494 0%, #2d6ea8 100%); color: white; border-color: #1a5494; }
+  .advies-card.rank-3 { background: linear-gradient(135deg, #ecafbd 0%, #f0c4cf 100%); color: var(--donkerblauw); border-color: #c08090; }
+  .advies-badge {
+    font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 0.65rem;
+    text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7;
+    margin-bottom: 3px;
+  }
+  .advies-stad { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.95rem; line-height: 1.1; margin-bottom: 5px; }
+  .advies-stat { font-size: 0.7rem; opacity: 0.85; line-height: 1.5; }
+  .advies-stat strong { font-weight: 700; }
+
+  /* Top list */
+  .top-item { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 8px; cursor: pointer; transition: background 0.15s; font-size: 0.77rem; }
+  .top-item:hover { background: var(--beige); }
+  .top-rank { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 0.85rem; color: var(--roze); -webkit-text-stroke: 0.4px #b08090; width: 16px; flex-shrink: 0; text-align: center; }
+  .top-name { flex: 1; font-weight: 500; line-height: 1.2; }
+  .top-bar-wrap { width: 44px; flex-shrink: 0; }
+  .top-bar { height: 5px; border-radius: 3px; background: linear-gradient(90deg, var(--donkerblauw), var(--blauw-mid)); margin-bottom: 2px; }
+  .top-num { font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--donkerblauw); font-size: 0.72rem; text-align: right; }
+
+  .footer-note { margin-top: auto; font-size: 0.67rem; color: #aaa; line-height: 1.55; padding-top: 10px; border-top: 1px solid var(--beige); }
+
+  /* Popups */
+  .leaflet-popup-content-wrapper { background: var(--donkerblauw) !important; color: white !important; border-radius: 14px !important; box-shadow: 0 12px 40px rgba(0,49,96,0.45) !important; padding: 0 !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .leaflet-popup-tip { background: var(--donkerblauw) !important; }
+  .leaflet-popup-content { margin: 0 !important; padding: 0 !important; min-width: 0 !important; }
+  .leaflet-popup-close-button { color: rgba(255,255,255,0.5) !important; top: 8px !important; right: 10px !important; font-size: 20px !important; }
+  .leaflet-popup-close-button:hover { color: white !important; }
+
+  .popup-inner { padding: 16px 18px; min-width: 210px; max-width: 310px; }
+  .popup-city { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.05rem; color: var(--roze); margin-bottom: 3px; }
+  .popup-meta { font-size: 0.78rem; color: rgba(255,255,255,0.55); margin-bottom: 10px; }
+  .popup-count-big { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 2rem; color: white; line-height: 1; margin-bottom: 1px; }
+  .popup-count-lbl { font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-bottom: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .popup-advies { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 9px 11px; margin-bottom: 11px; font-size: 0.75rem; color: rgba(255,255,255,0.9); line-height: 1.5; }
+  .popup-advies-label { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--goud-licht); margin-bottom: 4px; }
+  .popup-schools { font-size: 0.72rem; line-height: 1.7; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; color: rgba(255,255,255,0.8); }
+  .popup-school-item { display: flex; align-items: flex-start; gap: 5px; }
+  .popup-school-item::before { content: '·'; color: var(--roze); flex-shrink: 0; }
+
+  /* Bubble icons */
+  .bubble-icon {
+    display: flex; align-items: center; justify-content: center; border-radius: 50%;
+    font-family: 'Outfit', sans-serif; font-weight: 800; color: white;
+    border: 2px solid rgba(255,255,255,0.55);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.22);
+    cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+    line-height: 1; text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .bubble-icon:hover { transform: scale(1.12); box-shadow: 0 6px 22px rgba(0,0,0,0.35); }
+  .bubble-icon.tier-1 { background: var(--donkerblauw); }
+  .bubble-icon.tier-2 { background: var(--blauw-mid); }
+  .bubble-icon.tier-3 { background: var(--roze); color: var(--donkerblauw); border-color: rgba(0,49,96,0.3); text-shadow: none; }
+  .bubble-icon.tier-4 { background: var(--beige); color: var(--donkerblauw); border-color: rgba(0,49,96,0.25); text-shadow: none; }
+
+  /* Aanbevolen locaties: ster-ring eromheen */
+  .bubble-icon.aanbevolen {
+    box-shadow: 0 0 0 4px var(--goud-licht), 0 4px 16px rgba(0,0,0,0.3);
+    border-color: var(--goud-licht);
+  }
+  .bubble-icon.aanbevolen:hover { box-shadow: 0 0 0 5px var(--goud-licht), 0 8px 24px rgba(0,0,0,0.35); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <div class="logo-mark">ORHN</div>
+    <div>
+      <h1>Onderwijsregio Hollands Noorden</h1>
+      <p class="sub">Spreidingskaart medewerkers · Academie</p>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-pill">
+      <span class="num" id="total-counter">0</span>
+      <span class="lbl">medewerkers totaal</span>
+    </div>
+    <div class="stat-pill">
+      <span class="num" id="loc-counter">27</span>
+      <span class="lbl">steden</span>
+    </div>
+    <div class="stat-pill">
+      <span class="num" id="school-counter">0</span>
+      <span class="lbl">schoollocaties</span>
+    </div>
+  </div>
+</header>
+
+<div id="wrap">
+  <div id="map"></div>
+  <div id="sidebar">
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('advies')">📍 Advies</button>
+      <button class="tab-btn" onclick="switchTab('kaart')">🗺 Kaart</button>
+      <button class="tab-btn" onclick="switchTab('top')">📊 Top 10</button>
+    </div>
+
+    <!-- TAB: ADVIES -->
+    <div class="tab-content active" id="tab-advies">
+      <div class="sidebar-title">Aanbevolen trainingslocaties</div>
+      <p style="font-size:0.72rem;color:#888;line-height:1.5;margin-bottom:10px;">Op basis van medewerkersspreiding en geografisch zwaartepunt. Gouden ring = aanbevolen.</p>
+
+      <div class="advies-card rank-1" onclick="flyTo(52.6617, 4.8467, 'Heerhugowaard')">
+        <div class="advies-badge">⭐ Beste keuze · Centrale regio</div>
+        <div class="advies-stad">Heerhugowaard</div>
+        <div class="advies-stat">
+          <strong>88%</strong> van alle mw. binnen 30 km<br>
+          861 mw. lokaal · 6 scholen<br>
+          Dichtst bij gewogen middelpunt regio<br>
+          Goed bereikbaar via A9 & A7
+        </div>
+      </div>
+
+      <div class="advies-card rank-1" onclick="flyTo(52.6324, 4.7534, 'Alkmaar')">
+        <div class="advies-badge">⭐ Beste keuze · Knooppunt</div>
+        <div class="advies-stad">Alkmaar</div>
+        <div class="advies-stat">
+          <strong>84%</strong> van alle mw. binnen 30 km<br>
+          1.196 mw. lokaal · 11 scholen<br>
+          Grootste schoolconcentratie regio<br>
+          NS-station + A9/N9 verbindingen
+        </div>
+      </div>
+
+      <div class="advies-card rank-2" onclick="flyTo(52.6441, 5.0602, 'Hoorn')">
+        <div class="advies-badge">✦ Sterk voor oost-regio</div>
+        <div class="advies-stad">Hoorn</div>
+        <div class="advies-stat">
+          <strong>88%</strong> van alle mw. binnen 30 km<br>
+          1.274 mw. lokaal · 10 scholen<br>
+          Ideaal voor Westfriesland & IJmeer-zone<br>
+          NS-station aanwezig
+        </div>
+      </div>
+
+      <div class="advies-card rank-3" onclick="flyTo(52.5028, 4.9600, 'Purmerend')">
+        <div class="advies-badge">✦ Sterk voor zuidelijke regio</div>
+        <div class="advies-stad">Purmerend</div>
+        <div class="advies-stat">
+          <strong>81%</strong> van alle mw. binnen 30 km<br>
+          890 mw. lokaal · 8 scholen<br>
+          Ideaal voor Zaanstreek & omgeving<br>
+          NS-station + snelwegaansluiting
+        </div>
+      </div>
+
+      <div style="font-size:0.68rem;color:#aaa;line-height:1.5;margin-top:4px;">
+        💡 Combineer Heerhugowaard/Alkmaar met Hoorn voor maximale dekking van de regio.
+      </div>
+    </div>
+
+    <!-- TAB: KAART -->
+    <div class="tab-content" id="tab-kaart">
+      <div class="sidebar-title">Legenda</div>
+      <div>
+        <div class="legend-item"><div class="legend-circle" style="width:30px;height:30px;background:#003160;border:2px solid rgba(255,255,255,0.5);"></div><span><strong>900+</strong> medewerkers</span></div>
+        <div class="legend-item"><div class="legend-circle" style="width:22px;height:22px;background:#1a5494;border:2px solid rgba(255,255,255,0.5);"></div><span><strong>500–900</strong> medewerkers</span></div>
+        <div class="legend-item"><div class="legend-circle" style="width:16px;height:16px;background:#ecafbd;border:2px solid rgba(0,49,96,0.3);"></div><span><strong>200–500</strong> medewerkers</span></div>
+        <div class="legend-item"><div class="legend-circle" style="width:11px;height:11px;background:#e7e2d3;border:2px solid rgba(0,49,96,0.25);"></div><span><strong>&lt; 200</strong> medewerkers</span></div>
+        <div class="legend-item">
+          <div style="width:22px;height:22px;border-radius:50%;background:#1a5494;border:2.5px solid #f5c842;box-shadow:0 0 0 2px #f5c842;flex-shrink:0;"></div>
+          <span>Aanbevolen trainingslocatie</span>
+        </div>
+      </div>
+
+      <div class="sidebar-title" style="margin-top:4px;">Filter op min. medewerkers</div>
+      <div>
+        <div class="filter-label">Toon locaties met minimaal <strong id="filter-val">0</strong> mw.</div>
+        <input type="range" id="filter-slider" min="0" max="900" step="50" value="0">
+        <div class="range-vals"><span>0</span><span>900+</span></div>
+      </div>
+    </div>
+
+    <!-- TAB: TOP 10 -->
+    <div class="tab-content" id="tab-top">
+      <div class="sidebar-title">Top 10 locaties</div>
+      <div id="top10"></div>
+    </div>
+
+    <div class="footer-note">
+      Klik op een bol voor details.<br>
+      Gouden ring = aanbevolen voor trainingen.
+    </div>
+  </div>
+</div>
+
+<script>
+const AANBEVOLEN = ["Heerhugowaard", "Alkmaar", "Hoorn", "Purmerend"];
+
+const ADVIES_INFO = {
+  "Heerhugowaard": { badge: "⭐ Beste keuze · Centrale regio", tekst: "88% van alle medewerkers woont binnen 30 km. Dichtst bij het geografisch zwaartepunt van de regio. Goed bereikbaar via A9 & A7." },
+  "Alkmaar": { badge: "⭐ Beste keuze · Knooppunt", tekst: "84% bereikbaarheid binnen 30 km. Grootste schoolconcentratie: 11 locaties. NS-station + A9/N9 verbindingen." },
+  "Hoorn": { badge: "✦ Aanbevolen · Oost-regio", tekst: "88% bereikbaarheid binnen 30 km. Ideaal voor Westfriesland & IJmeer-zone. Meeste medewerkers lokaal: 1.274." },
+  "Purmerend": { badge: "✦ Aanbevolen · Zuid-regio", tekst: "81% bereikbaarheid binnen 30 km. Strategisch voor Zaanstreek & omgeving. NS-station aanwezig." },
+};
+
+const DATA = [
+  { stad: "Alkmaar", lat: 52.6324, lng: 4.7534, mw: 1196, scholen: ["Vonk Alkmaar","Jan Arentz","osg Willem Blaeu","Stedelijk Dalton College Alkmaar","Murmellius Gymnasium","De Viaan","Van der Meij College","PCC Het Lyceum","PCC Fabritius","PCC Oosterhout","Talland College (MBO)"] },
+  { stad: "Anna Paulowna", lat: 52.8633, lng: 4.8316, mw: 50, scholen: ["Vonk Anna Paulowna"] },
+  { stad: "Assendelft", lat: 52.4789, lng: 4.7528, mw: 41, scholen: ["Praktijkschool de Brug"] },
+  { stad: "Bergen", lat: 52.6686, lng: 4.7015, mw: 87, scholen: ["Berger Scholengemeenschap"] },
+  { stad: "Bergen (N-H)", lat: 52.6750, lng: 4.6960, mw: 109, scholen: ["Adriaan Roland Holstschool"] },
+  { stad: "Beverwijk", lat: 52.4878, lng: 4.6564, mw: 194, scholen: ["Castor College","Fourteens"] },
+  { stad: "Castricum", lat: 52.5469, lng: 4.6577, mw: 554, scholen: ["Vonk Castricum","Bonhoeffercollege","Jac. P. Thijsse College","Supreme College Nederland"] },
+  { stad: "Den Burg (Texel)", lat: 53.0541, lng: 4.7968, mw: 89, scholen: ["OSG De Hogeberg"] },
+  { stad: "Den Helder", lat: 52.9563, lng: 4.7601, mw: 905, scholen: ["Vonk Den Helder (Entree, Vavo, Educatie & Inburgering)","Vonk Den Helder (Economie & Ondernemen)","Vonk Den Helder (Zorg, Welzijn en LSTV)","Praktijkschool de Pijler","Lyceum aan Zee","Villa aan Zee vo","Beroepsonderwijs aan Zee"] },
+  { stad: "Edam", lat: 52.5136, lng: 5.0470, mw: 363, scholen: ["SG De Triade","Talland College"] },
+  { stad: "Enkhuizen", lat: 52.7038, lng: 5.2934, mw: 163, scholen: ["RSG Enkhuizen"] },
+  { stad: "Grootebroek", lat: 52.6817, lng: 5.2200, mw: 404, scholen: ["Martinuscollege","Praktijkschool Westfriesland (Stedebroec)","Vonk Grootebroek"] },
+  { stad: "Heemskerk", lat: 52.5108, lng: 4.6780, mw: 259, scholen: ["Dali College","Skills vmbo","Forta"] },
+  { stad: "Heerhugowaard", lat: 52.6617, lng: 4.8467, mw: 861, scholen: ["Vonk Heerhugowaard","Trinitas College Han Fortmann","Trinitas College Johannes Bosco","Huygens College (2 locaties)","Focus","Talland College"] },
+  { stad: "Heiloo", lat: 52.6019, lng: 4.7001, mw: 38, scholen: ["PCC Heiloo"] },
+  { stad: "Hoorn", lat: 52.6441, lng: 5.0602, mw: 1274, scholen: ["Newton SG","Copernicus SG","OSG WestFriesland","Werenfridus","d'Ampte","Oscar Romero","Praktijkschool Westfriesland (Hoorn)","VSO de Stormvogel","Vonk Hoorn","Talland College"] },
+  { stad: "Julianadorp", lat: 52.8914, lng: 4.7483, mw: 44, scholen: ["Junior College"] },
+  { stad: "Koog aan de Zaan", lat: 52.4656, lng: 4.8103, mw: 270, scholen: ["Talland College"] },
+  { stad: "Krommenie", lat: 52.4939, lng: 4.7628, mw: 291, scholen: ["Bertrand Russel College (2 locaties)","Trias VMBO","ISK Zaanstad"] },
+  { stad: "Medemblik", lat: 52.7701, lng: 5.1010, mw: 72, scholen: ["SG De Dijk"] },
+  { stad: "Purmerend", lat: 52.5028, lng: 4.9600, mw: 890, scholen: ["Da Vinci College","SG Gerrit Rietveld","Jan van Egmond Lyceum","SG WJ. Bladergroen","SG Antoni Gaudi","SG Nelson Mandela","Vonk Purmerend","Talland College"] },
+  { stad: "Schagen", lat: 52.7877, lng: 4.7985, mw: 462, scholen: ["Vonk Schagen (Boomgaard)","Vonk Schagen (Hofstraat)","Regius College havo/vwo","Regius College vmbo/pro"] },
+  { stad: "Volendam", lat: 52.4983, lng: 5.0706, mw: 120, scholen: ["Don Bosco College"] },
+  { stad: "Wieringerwerf", lat: 52.8431, lng: 5.0131, mw: 129, scholen: ["rsg Wiringherlant"] },
+  { stad: "Zaandam", lat: 52.4392, lng: 4.8249, mw: 764, scholen: ["St Michaël College","Compaen VMBO","Zaanlands Lyceum","Zuiderzee College","Talland College"] },
+  { stad: "Zaandijk", lat: 52.4706, lng: 4.8175, mw: 90, scholen: ["Het Saenredam"] },
+  { stad: "Zuid-Scharwoude", lat: 52.6556, lng: 4.9408, mw: 170, scholen: ["Jan Arentz"] },
+];
+
+const TOTAL = DATA.reduce((s, d) => s + d.mw, 0);
+const MAX_MW = Math.max(...DATA.map(d => d.mw));
+
+function getTier(mw) {
+  if (mw >= 900) return 1;
+  if (mw >= 500) return 2;
+  if (mw >= 200) return 3;
+  return 4;
+}
+function getSize(mw) {
+  return Math.round(32 + Math.sqrt(mw / MAX_MW) * 50);
+}
+function getFontSize(d) {
+  if (d >= 70) return 13; if (d >= 54) return 11; if (d >= 42) return 10; return 9;
+}
+
+const map = L.map('map', { center: [52.65, 4.95], zoom: 9, zoomControl: true, scrollWheelZoom: true });
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains: 'abcd', maxZoom: 19
+}).addTo(map);
+
+// Weighted centroid marker (subtle)
+L.circleMarker([52.6334, 4.8723], {
+  radius: 6, fillColor: '#f5c842', fillOpacity: 0.9,
+  color: '#d4960a', weight: 2, opacity: 1
+}).addTo(map).bindTooltip('Gewogen middelpunt regio', { permanent: false });
+
+const markers = [];
+
+function buildPopup(loc) {
+  const isAanbevolen = AANBEVOLEN.includes(loc.stad);
+  const advies = ADVIES_INFO[loc.stad];
+  return `
+    <div class="popup-inner">
+      <div class="popup-city">${loc.stad}${isAanbevolen ? ' ✦' : ''}</div>
+      <div class="popup-meta">${loc.scholen.length} schoollocatie${loc.scholen.length !== 1 ? 's' : ''}</div>
+      <div class="popup-count-big">${loc.mw.toLocaleString('nl-NL')}</div>
+      <div class="popup-count-lbl">medewerkers</div>
+      ${advies ? `<div class="popup-advies"><div class="popup-advies-label">${advies.badge}</div>${advies.tekst}</div>` : ''}
+      <div class="popup-schools">${loc.scholen.map(s => `<div class="popup-school-item"><span>${s}</span></div>`).join('')}</div>
+    </div>`;
+}
+
+DATA.forEach((loc, i) => {
+  const d = getSize(loc.mw);
+  const tier = getTier(loc.mw);
+  const fs = getFontSize(d);
+  const isAanbevolen = AANBEVOLEN.includes(loc.stad);
+  const extraClass = isAanbevolen ? ' aanbevolen' : '';
+
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="bubble-icon tier-${tier}${extraClass}" style="width:${d}px;height:${d}px;font-size:${fs}px;opacity:0;transition:opacity 0.4s ${i*0.03}s, transform 0.15s, box-shadow 0.15s;">${loc.mw.toLocaleString('nl-NL')}</div>`,
+    iconSize: [d, d], iconAnchor: [d/2, d/2], popupAnchor: [0, -d/2 - 4]
+  });
+
+  const marker = L.marker([loc.lat, loc.lng], { icon, zIndexOffset: isAanbevolen ? loc.mw + 5000 : loc.mw })
+    .addTo(map).bindPopup(buildPopup(loc), { maxWidth: 330 });
+
+  markers.push({ marker, loc });
+
+  setTimeout(() => {
+    const el = marker.getElement()?.querySelector('.bubble-icon');
+    if (el) el.style.opacity = '1';
+  }, 100 + i * 38);
+});
+
+// flyTo helper
+function flyTo(lat, lng, stad) {
+  map.flyTo([lat, lng], 12, { duration: 1.2 });
+  setTimeout(() => {
+    const found = markers.find(m => m.loc.stad === stad);
+    if (found) found.marker.openPopup();
+  }, 1300);
+}
+
+// Filter
+const slider = document.getElementById('filter-slider');
+const filterVal = document.getElementById('filter-val');
+const locCounter = document.getElementById('loc-counter');
+
+function applyFilter() {
+  const min = parseInt(slider.value);
+  filterVal.textContent = min;
+  let visible = 0;
+  markers.forEach(({ marker, loc }) => {
+    const el = marker.getElement()?.querySelector('.bubble-icon');
+    if (loc.mw >= min) { if (el) el.style.opacity = '1'; visible++; }
+    else { if (el) el.style.opacity = '0.07'; }
+  });
+  locCounter.textContent = visible;
+}
+slider.addEventListener('input', applyFilter);
+
+// Top 10
+const top10 = [...DATA].sort((a, b) => b.mw - a.mw).slice(0, 10);
+const top10El = document.getElementById('top10');
+top10.forEach((loc, i) => {
+  const pct = Math.round((loc.mw / top10[0].mw) * 100);
+  const isA = AANBEVOLEN.includes(loc.stad);
+  const div = document.createElement('div');
+  div.className = 'top-item';
+  div.innerHTML = `
+    <span class="top-rank">${i + 1}</span>
+    <span class="top-name">${isA ? '✦ ' : ''}${loc.stad}</span>
+    <div class="top-bar-wrap">
+      <div class="top-bar" style="width:${pct}%"></div>
+      <div class="top-num">${loc.mw.toLocaleString('nl-NL')}</div>
+    </div>`;
+  div.addEventListener('click', () => flyTo(loc.lat, loc.lng, loc.stad));
+  top10El.appendChild(div);
+});
+
+// Tab switching
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// Counters
+const TOTAL_SCHOLEN = DATA.reduce((s, d) => s + d.scholen.length, 0);
+let counted = 0, countedScholen = 0;
+const counterEl = document.getElementById('total-counter');
+const schoolCounterEl = document.getElementById('school-counter');
+
+setTimeout(() => {
+  const steps = 80, duration = 1800;
+  const incMw = TOTAL / steps;
+  const incScholen = TOTAL_SCHOLEN / steps;
+  const timer = setInterval(() => {
+    counted = Math.min(counted + incMw, TOTAL);
+    countedScholen = Math.min(countedScholen + incScholen, TOTAL_SCHOLEN);
+    counterEl.textContent = Math.round(counted).toLocaleString('nl-NL');
+    schoolCounterEl.textContent = Math.round(countedScholen);
+    if (counted >= TOTAL) clearInterval(timer);
+  }, duration / steps);
+}, 300);
+</script>
+</body>
+</html>
