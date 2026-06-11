@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLG Innovatie – Onderwijsregio Hollands Noorden</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    :root {
+        --ahn-blue: #1A3A5C;
+        --ahn-teal: #1D7A8A;
+        --ahn-light: #EEF4F7;
+        --ahn-text: #1C2B3A;
+        --ahn-muted: #6B8097;
+        --g1: #E05A2B;
+        --g2: #2E86AB;
+        --g3: #6DB04B;
+        --grey: #AEB9C4;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background: var(--ahn-light);
+        color: var(--ahn-text);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    header {
+        background: var(--ahn-blue);
+        color: #fff;
+        padding: 13px 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-shrink: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
+    }
+
+    .header-logo {
+        width: 38px;
+        height: 38px;
+        background: var(--ahn-teal);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        color: #fff;
+        flex-shrink: 0;
+    }
+
+    .header-titles h1 {
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .header-titles p {
+        font-size: 11px;
+        color: rgba(255, 255, 255, .6);
+        margin-top: 1px;
+    }
+
+    #legend-bar {
+        background: #fff;
+        border-bottom: 1px solid rgba(0, 0, 0, .07);
+        padding: 9px 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+        z-index: 900;
+    }
+
+    .legend-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--ahn-muted);
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        margin-right: 4px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 20px;
+        border: 2px solid;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all .2s;
+        user-select: none;
+    }
+
+    .legend-item[data-group="g1"] {
+        border-color: var(--g1);
+        color: var(--g1);
+        background: rgba(224, 90, 43, .07);
+    }
+
+    .legend-item[data-group="g2"] {
+        border-color: var(--g2);
+        color: var(--g2);
+        background: rgba(46, 134, 171, .07);
+    }
+
+    .legend-item[data-group="g3"] {
+        border-color: var(--g3);
+        color: var(--g3);
+        background: rgba(109, 176, 75, .07);
+    }
+
+    .legend-item.is-hovered {
+        box-shadow: 0 0 0 3px rgba(0, 0, 0, .12);
+        filter: brightness(.92);
+    }
+
+    .legend-item.is-active {
+        color: #fff !important;
+    }
+
+    .legend-item[data-group="g1"].is-active {
+        background: var(--g1);
+    }
+
+    .legend-item[data-group="g2"].is-active {
+        background: var(--g2);
+    }
+
+    .legend-item[data-group="g3"].is-active {
+        background: var(--g3);
+    }
+
+    .legend-item.is-active .legend-dot {
+        background: #fff !important;
+    }
+
+    .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .legend-item[data-group="g1"] .legend-dot {
+        background: var(--g1);
+    }
+
+    .legend-item[data-group="g2"] .legend-dot {
+        background: var(--g2);
+    }
+
+    .legend-item[data-group="g3"] .legend-dot {
+        background: var(--g3);
+    }
+
+    .legend-spacer {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    #reset-btn, #privacy-toggle {
+        padding: 5px 13px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 500;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all .2s;
+        border: 1.5px solid;
+    }
+
+    #reset-btn {
+        border-color: var(--ahn-muted);
+        color: var(--ahn-muted);
+        background: transparent;
+    }
+
+    #reset-btn:hover {
+        background: var(--ahn-muted);
+        color: #fff;
+    }
+
+    #privacy-toggle {
+        border-color: var(--ahn-teal);
+        color: var(--ahn-teal);
+        background: transparent;
+    }
+
+    #privacy-toggle:hover, #privacy-toggle.active {
+        background: var(--ahn-teal);
+        color: #fff;
+    }
+
+    #map-wrap {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+    }
+
+    #map {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        background: var(--ahn-light);
+    }/* ── DRAGGABLE INFOKAART ── */
+    #info-card {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 320px;
+        max-height: calc(100% - 40px);
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 12px 44px rgba(0, 0, 0, .28);
+        z-index: 1200;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        animation: cardIn .35s cubic-bezier(.34, 1.4, .64, 1);
+    }
+
+    @keyframes cardIn {
+        from {
+            opacity: 0;
+            transform: translateY(-12px) scale(.97);
+        }
+
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    #card-header {
+        padding: 16px 18px 13px;
+        color: #fff;
+        cursor: grab;
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    #card-header:active {
+        cursor: grabbing;
+    }
+
+    #card-header .drag-hint {
+        position: absolute;
+        top: 7px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 34px;
+        height: 4px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, .4);
+    }
+
+    .card-groep-label {
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        opacity: .8;
+        margin-bottom: 4px;
+        margin-top: 6px;
+    }
+
+    #card-header h3 {
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.3;
+        padding-right: 22px;
+    }
+
+    .card-vraag {
+        font-size: 11px;
+        opacity: .85;
+        margin-top: 6px;
+        line-height: 1.5;
+        font-style: italic;
+    }
+
+    #card-close {
+        position: absolute;
+        top: 12px;
+        right: 13px;
+        width: 22px;
+        height: 22px;
+        border: none;
+        background: rgba(255, 255, 255, .2);
+        color: #fff;
+        border-radius: 50%;
+        font-size: 15px;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #card-close:hover {
+        background: rgba(255, 255, 255, .35);
+    }
+
+    #card-body {
+        padding: 14px 18px 0;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .card-stats {
+        display: flex;
+        margin-bottom: 14px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #eee;
+    }
+
+    .card-stat {
+        flex: 1;
+        text-align: center;
+        padding: 9px 4px;
+        border-right: 1px solid #eee;
+    }
+
+    .card-stat:last-child {
+        border-right: none;
+    }
+
+    .card-stat-n {
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .card-stat-l {
+        font-size: 9px;
+        color: var(--ahn-muted);
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-top: 4px;
+    }
+
+    .card-section-title {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--ahn-muted);
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        margin-bottom: 8px;
+    }
+
+    .card-loc {
+        margin-bottom: 10px;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .card-loc-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        background: #f8f9fa;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .card-loc-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .card-loc-pc {
+        font-size: 10px;
+        color: var(--ahn-muted);
+        font-weight: 400;
+        margin-left: auto;
+    }
+
+    .card-school {
+        padding: 7px 10px 7px 27px;
+        border-top: 1px solid #eee;
+    }
+
+    .card-school-name {
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .card-school-bestuur {
+        font-size: 10px;
+        color: var(--ahn-muted);
+        margin-top: 1px;
+    }
+
+    .card-school-leden {
+        font-size: 11px;
+        color: #444;
+        margin-top: 3px;
+        line-height: 1.5;
+    }
+
+    #card-footer {
+        flex-shrink: 0;
+        border-top: 1px solid #eee;
+        padding: 11px 18px;
+        background: #fafbfc;
+    }
+
+    #card-footer button {
+        width: 100%;
+        border: none;
+        background: var(--ahn-blue);
+        color: #fff;
+        padding: 9px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        font-family: inherit;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: background .2s;
+    }
+
+    #card-footer button:hover {
+        background: #234d77;
+    }
+
+    #stats-bar {
+        background: var(--ahn-blue);
+        color: #fff;
+        padding: 7px 24px;
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .stat-item {
+        font-size: 11px;
+        opacity: .75;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .stat-n {
+        font-size: 14px;
+        font-weight: 700;
+        opacity: 1;
+    }
+
+    .stat-sep {
+        opacity: .25;
+    }
+
+    .leaflet-interactive {
+        cursor: pointer;
+    }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-logo">AHN</div>
+        <div class="header-titles">
+            <h1>PLG Innovatie – Onderzoeksgroepen 2026–2027</h1>
+            <p>Academie Hollands Noorden · Onderwijsregio Hollands Noorden</p>
+        </div>
+    </header>
+
+    <div id="legend-bar">
+        <span class="legend-label">Onderzoeksgroepen</span>
+        <div class="legend-item" data-group="g1" onmouseenter="legendHover('g1')" onmouseleave="legendUnhover()" onclick="selectGroup('g1')">
+            <span class="legend-dot"></span>
+            Onderwijsorganisatie
+        </div>
+        <div class="legend-item" data-group="g2" onmouseenter="legendHover('g2')" onmouseleave="legendUnhover()" onclick="selectGroup('g2')">
+            <span class="legend-dot"></span>
+            Samenwerking regio Alkmaar
+        </div>
+        <div class="legend-item" data-group="g3" onmouseenter="legendHover('g3')" onmouseleave="legendUnhover()" onclick="selectGroup('g3')">
+            <span class="legend-dot"></span>
+            AI als ondersteunende collega
+        </div>
+        <div class="legend-spacer">
+            <button id="reset-btn" onclick="resetView()">↺ Overzicht</button>
+            <button id="privacy-toggle" onclick="togglePrivacy()">👁 Namen verbergen</button>
+        </div>
+    </div>
+
+    <div id="map-wrap">
+        <div id="map"></div>
+        <div id="info-card">
+            <div id="card-header">
+                <div class="drag-hint"></div>
+                <button id="card-close" onclick="closeCard()">×</button>
+                <div class="card-groep-label">Onderzoeksgroep</div>
+                <h3 id="card-title"></h3>
+                <div class="card-vraag" id="card-vraag"></div>
+            </div>
+            <div id="card-body"></div>
+            <div id="card-footer">
+                <button onclick="resetView()">↺ Klik hier om uit te zoomen naar het overzicht</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="stats-bar">
+        <div class="stat-item">
+            <span class="stat-n">3</span>
+            &nbsp;onderzoeksgroepen
+        </div>
+        <span class="stat-sep">·</span>
+        <div class="stat-item">
+            <span class="stat-n">13</span>
+            &nbsp;deelnemers
+        </div>
+        <span class="stat-sep">·</span>
+        <div class="stat-item">
+            <span class="stat-n">8</span>
+            &nbsp;scholen
+        </div>
+        <span class="stat-sep">·</span>
+        <div class="stat-item">
+            <span class="stat-n">7</span>
+            &nbsp;schoolbesturen
+        </div>
+        <span class="stat-sep">·</span>
+        <div class="stat-item">
+            <span class="stat-n">5</span>
+            &nbsp;plaatsen in Noord-Holland
+        </div>
+    </div>
+
+    <script>
+    // ═══ DATA ═══
+    const GROEPEN = [
+    {
+        id: "g1",
+        naam: "Onderwijsorganisatie herontwerpen",
+        kleur: "#E05A2B",
+        vraag: "Op welke manieren kunnen scholen hun onderwijsorganisatie herontwerpen zodat zij, ondanks de schaarste aan personeel en middelen, de onderwijskwaliteit en het welbevinden van leerlingen en docenten waarborgen?"
+    },
+    {
+        id: "g2",
+        naam: "Samenwerking regio Alkmaar",
+        kleur: "#2E86AB",
+        vraag: "Hoe kunnen de drie diverse besturen, door intensivering van hun samenwerking op het gebied van onderwijs, identiteit en personeel binnen één schooljaar (2026–2027) aantoonbaar bijdragen aan een rijk, gevarieerd en toekomstbestendig onderwijsaanbod in de regio Alkmaar?"
+    },
+    {
+        id: "g3",
+        naam: "AI als ondersteunende collega",
+        kleur: "#6DB04B",
+        vraag: "Leidt de inzet van AI als ondersteunende collega bij lesvoorbereiding, differentiatie en feedback tot aantoonbare vermindering van werkdruk én gelijkblijvende of verbeterde leeropbrengsten ten opzichte van onderwijs zonder AI-ondersteuning?"
+    }
+    ];
+    const DEELNEMERS = [
+    {
+        naam: "Lorinda de Winter",
+        school: "Nelson Mandela",
+        bestuur: "PSG",
+        postcode: "1442 AX",
+        plaats: "Purmerend",
+        lat: 52.5041,
+        lon: 4.9601,
+        groep: "g1"
+    },
+    {
+        naam: "Faye Mahoney",
+        school: "Nelson Mandela",
+        bestuur: "PSG",
+        postcode: "1442 AX",
+        plaats: "Purmerend",
+        lat: 52.5041,
+        lon: 4.9601,
+        groep: "g1"
+    },
+    {
+        naam: "Renate Bos-Olij",
+        school: "Regius College",
+        bestuur: "Pontis",
+        postcode: "1741 CP",
+        plaats: "Schagen",
+        lat: 52.7879,
+        lon: 4.7993,
+        groep: "g1"
+    },
+    {
+        naam: "Judith Hagedoorn",
+        school: "Regius College",
+        bestuur: "Pontis",
+        postcode: "1741 CP",
+        plaats: "Schagen",
+        lat: 52.7879,
+        lon: 4.7993,
+        groep: "g1"
+    },
+    {
+        naam: "Jeroen de Ruijter",
+        school: "Jac P Thijsse College",
+        bestuur: "SVOK",
+        postcode: "1902 GT",
+        plaats: "Castricum",
+        lat: 52.5556,
+        lon: 4.6594,
+        groep: "g1"
+    },
+    {
+        naam: "Isaak Dekker",
+        school: "HvA",
+        bestuur: "HvA",
+        postcode: "",
+        plaats: "Amsterdam",
+        lat: 52.3676,
+        lon: 4.9041,
+        groep: "g1"
+    },
+    {
+        naam: "Alessandra Corda",
+        school: "HvA",
+        bestuur: "HvA",
+        postcode: "",
+        plaats: "Amsterdam",
+        lat: 52.3676,
+        lon: 4.9041,
+        groep: "g1"
+    },
+    {
+        naam: "Hans Nijdeken",
+        school: "PCC",
+        bestuur: "PCC",
+        postcode: "1814 CG",
+        plaats: "Alkmaar",
+        lat: 52.6324,
+        lon: 4.7534,
+        groep: "g2"
+    },
+    {
+        naam: "Maud Kroes",
+        school: "SOVON",
+        bestuur: "SOVON",
+        postcode: "1825 PV",
+        plaats: "Alkmaar",
+        lat: 52.6480,
+        lon: 4.7720,
+        groep: "g2"
+    },
+    {
+        naam: "Eugene Kramer",
+        school: "Jan Arends College",
+        bestuur: "Jan Arentz",
+        postcode: "1825 BB",
+        plaats: "Alkmaar",
+        lat: 52.6420,
+        lon: 4.7610,
+        groep: "g2"
+    },
+    {
+        naam: "Lotte Seijsener-Adrichem",
+        school: "Talland College",
+        bestuur: "Talland",
+        postcode: "1817 BC",
+        plaats: "Alkmaar",
+        lat: 52.6200,
+        lon: 4.7480,
+        groep: "g3"
+    },
+    {
+        naam: "Frank Schaap",
+        school: "Talland College",
+        bestuur: "Talland",
+        postcode: "1817 BC",
+        plaats: "Alkmaar",
+        lat: 52.6200,
+        lon: 4.7480,
+        groep: "g3"
+    },
+    {
+        naam: "Tim Jonker",
+        school: "Jac P Thijsse College",
+        bestuur: "SVOK",
+        postcode: "1902 GT",
+        plaats: "Castricum",
+        lat: 52.5556,
+        lon: 4.6594,
+        groep: "g3"
+    }
+    ];
+    const HOME = {
+        center: [52.60, 4.85],
+        zoom: 9
+    };
+
+    // ═══ STATE ═══
+    let privacyMode = false,
+        hoveredGroup = null,
+        selectedGroup = null;
+    const zonesByGroup = {},
+        markersByGroup = {},
+        hullGeom = {};
+    let lastSelectedForReopen = null;
+
+    // ═══ KAART ═══
+    const map = L.map('map', {
+        center: HOME.center,
+        zoom: 7,
+        zoomControl: true
+    });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap · © CARTO',
+        subdomains: 'abcd',
+        maxZoom: 18
+    }).addTo(map);
+
+    // ═══ GEOMETRIE ═══
+    function cross(O, A, B) {
+        return (A[0] - O[0]) * (B[1] - O[1]) - (A[1] - O[1]) * (B[0] - O[0]);
+    }
+    function convexHull(pts) {
+        if (pts.length < 3)
+            return pts;
+        const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+        const lo = [];
+        for (const pt of p) {
+            while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], pt) <= 0)
+                lo.pop();
+            lo.push(pt);
+        }
+        const up = [];
+        for (let i = p.length - 1; i >= 0; i--) {
+            while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], p[i]) <= 0)
+                up.pop();
+            up.push(p[i]);
+        }
+        up.pop();
+        lo.pop();
+        return lo.concat(up);
+    }
+    function smoothPolygon(points, buffer, steps) {
+        if (points.length < 3)
+            return points;
+        const cx = points.reduce((s, p) => s + p[0], 0) / points.length,
+            cy = points.reduce((s, p) => s + p[1], 0) / points.length;
+        const buffed = points.map(([x, y]) => {
+            const dx = x - cx,
+                dy = y - cy,
+                l = Math.sqrt(dx * dx + dy * dy) || 1;
+            return [x + dx / l * buffer, y + dy / l * buffer];
+        });
+        const n = buffed.length,
+            res = [];
+        for (let i = 0; i < n; i++) {
+            const p0 = buffed[(i - 1 + n) % n],
+                p1 = buffed[i],
+                p2 = buffed[(i + 1) % n],
+                p3 = buffed[(i + 2) % n];
+            for (let t = 0; t < steps; t++) {
+                const tt = t / steps,
+                    t2 = tt * tt,
+                    t3 = t2 * tt;
+                const x = 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * tt + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3);
+                const y = 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * tt + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3);
+                res.push([x, y]);
+            }
+        }
+        return res;
+    }
+    function shoelace(poly) {
+        let a = 0;
+        for (let i = 0; i < poly.length; i++) {
+            const [x1, y1] = poly[i],
+                [x2, y2] = poly[(i + 1) % poly.length];
+            a += x1 * y2 - x2 * y1;
+        }
+        return Math.abs(a / 2);
+    }
+    function pointInPoly(lat, lon, poly) {
+        let inside = false;
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            const yi = poly[i][0],
+                xi = poly[i][1],
+                yj = poly[j][0],
+                xj = poly[j][1];
+            const inter = ((xi > lon) !== (xj > lon)) && (lat < (yj - yi) * (lon - xi) / (xj - xi) + yi);
+            if (inter)
+                inside = !inside;
+        }
+        return inside;
+    }
+
+    function groep(id) {
+        return GROEPEN.find(g => g.id === id);
+    }
+    function locatiesVoorGroep(gid) {
+        const mp = {};
+        DEELNEMERS.filter(d => d.groep === gid).forEach(d => {
+            const k = `${d.lat}_${d.lon}`;
+            if (!mp[k])
+                mp[k] = {
+                    lat: d.lat,
+                    lon: d.lon,
+                    plaats: d.plaats,
+                    postcode: d.postcode,
+                    leden: []
+                };
+            mp[k].leden.push(d);
+        });
+        return Object.values(mp);
+    }
+    function boundsVoorGroep(gid) {
+        return L.latLngBounds(locatiesVoorGroep(gid).map(l => [l.lat, l.lon]));
+    }
+    function middelpunt(gid) {
+        const l = locatiesVoorGroep(gid);
+        return [l.reduce((s, x) => s + x.lat, 0) / l.length, l.reduce((s, x) => s + x.lon, 0) / l.length];
+    }
+
+    // ═══ TEKEN ZONES + MARKERS ═══
+    function tekenKaart() {
+        // sorteer groepen op oppervlakte: grootste eerst tekenen (achterop)
+        const order = GROEPEN.map(g => {
+            const locs = locatiesVoorGroep(g.id);
+            const pts = locs.map(l => [l.lat, l.lon]);
+            let area;
+            if (locs.length < 3) {
+                const b = L.latLngBounds(pts.map(p => [p[0], p[1]]));
+                area = Math.abs((b.getNorth() - b.getSouth()) * (b.getEast() - b.getWest())) + 0.002;
+            }
+            else
+                area = shoelace(convexHull(pts));
+            return {
+                g,
+                area,
+                locs,
+                pts
+            };
+        }).sort((a, b) => b.area - a.area);
+
+        order.forEach(({g, locs, pts}) => {
+            let zone,
+                geomPoly;
+            if (locs.length === 1) {
+                zone = L.circle([locs[0].lat, locs[0].lon], {
+                    radius: 9000
+                });
+                geomPoly = circlePoly(locs[0].lat, locs[0].lon, 0.085);
+            } else if (locs.length === 2) {
+                const mid = [(locs[0].lat + locs[1].lat) / 2, (locs[0].lon + locs[1].lon) / 2];
+                const r = map.distance([locs[0].lat, locs[0].lon], [locs[1].lat, locs[1].lon]) / 2 + 7000;
+                zone = L.circle(mid, {
+                    radius: r
+                });
+                geomPoly = circlePoly(mid[0], mid[1], r / 111000 * 1.1);
+            } else {
+                const hull = convexHull(pts);
+                const smooth = smoothPolygon(hull, 0.03, 14);
+                zone = L.polygon(smooth);
+                geomPoly = smooth;
+            }
+            zone.setStyle(greyZoneStyle());
+            zone.addTo(map);
+            zonesByGroup[g.id] = zone;
+            hullGeom[g.id] = geomPoly;
+
+            markersByGroup[g.id] = [];
+            locs.forEach(loc => {
+                const m = L.circleMarker([loc.lat, loc.lon], greyMarkerStyle());
+                m._trueLatLng = [loc.lat, loc.lon];
+                m.addTo(map);
+                markersByGroup[g.id].push(m);
+            });
+        });
+        spreadMarkers();
+    }
+    function circlePoly(lat, lon, rDeg) {
+        const p = [];
+        for (let i = 0; i < 24; i++) {
+            const a = i / 24 * 2 * Math.PI;
+            p.push([lat + Math.sin(a) * rDeg, lon + Math.cos(a) * rDeg / Math.cos(lat * Math.PI / 180)]);
+        }
+        return p;
+    }
+
+    function greyZoneStyle() {
+        return {
+            color: '#AEB9C4',
+            weight: 1.5,
+            fillColor: '#AEB9C4',
+            fillOpacity: 0.07,
+            opacity: 0.3
+        };
+    }
+    function colorZoneStyle(c) {
+        return {
+            color: c,
+            weight: 2.5,
+            fillColor: c,
+            fillOpacity: 0.20,
+            opacity: 0.85
+        };
+    }
+    function greyMarkerStyle() {
+        return {
+            radius: 7,
+            fillColor: '#AEB9C4',
+            color: '#fff',
+            weight: 2,
+            fillOpacity: 0.55,
+            opacity: 0.7
+        };
+    }
+    function colorMarkerStyle(c) {
+        return {
+            radius: 10,
+            fillColor: c,
+            color: '#fff',
+            weight: 2.5,
+            fillOpacity: 0.98,
+            opacity: 1
+        };
+    }
+
+    // ═══ MARKERS UIT ELKAAR (spiderfy) ═══
+    function spreadMarkers() {
+        const all = [];
+        GROEPEN.forEach(g => markersByGroup[g.id]?.forEach(m => all.push({
+            m,
+            g
+        })));
+        // reset naar true positie
+        all.forEach(o => o.m.setLatLng(o.m._trueLatLng));
+        // cluster op pixelafstand
+        const pts = all.map(o => ({
+            ...o,
+            pt: map.latLngToContainerPoint(o.m._trueLatLng)
+        }));
+        const used = new Array(pts.length).fill(false);
+        const TH = 28;
+        for (let i = 0; i < pts.length; i++) {
+            if (used[i])
+                continue;
+            const cluster = [pts[i]];
+            used[i] = true;
+            for (let j = i + 1; j < pts.length; j++) {
+                if (used[j])
+                    continue;
+                if (pts[i].pt.distanceTo(pts[j].pt) < TH) {
+                    cluster.push(pts[j]);
+                    used[j] = true;
+                }
+            }
+            if (cluster.length > 1) {
+                const cx = cluster.reduce((s, c) => s + c.pt.x, 0) / cluster.length;
+                const cy = cluster.reduce((s, c) => s + c.pt.y, 0) / cluster.length;
+                const R = 16 + cluster.length * 4;
+                cluster.forEach((c, k) => {
+                    const ang = k / cluster.length * 2 * Math.PI - Math.PI / 2;
+                    const np = L.point(cx + Math.cos(ang) * R, cy + Math.sin(ang) * R);
+                    c.m.setLatLng(map.containerPointToLatLng(np));
+                });
+            }
+        }
+    }
+
+    // ═══ KAARTLAAG HOVER/KLIK via point-in-polygon ═══
+    function groupAtLatLng(lat, lon) {
+        const hits = [];
+        GROEPEN.forEach(g => {
+            if (pointInPoly(lat, lon, hullGeom[g.id]))
+                hits.push({
+                    g,
+                    area: shoelace(hullGeom[g.id])
+                });
+        });
+        if (!hits.length)
+            return null;
+        hits.sort((a, b) => a.area - b.area); // kleinste wint
+        return hits[0].g.id;
+    }
+    map.on('mousemove', e => {
+        if (selectedGroup)
+            return; // hover uitgeschakeld tijdens selectie
+        const gid = groupAtLatLng(e.latlng.lat, e.latlng.lng);
+        if (gid) {
+            if (gid !== hoveredGroup)
+                setHover(gid);
+        }
+        else if (hoveredGroup)
+            clearHover();
+    });
+    map.on('click', e => {
+        if (selectedGroup) {
+            // klik op actieve regio heropent de kaart
+            if (pointInPoly(e.latlng.lat, e.latlng.lng, hullGeom[selectedGroup]))
+                openCard(selectedGroup);
+            return;
+        }
+        const gid = groupAtLatLng(e.latlng.lat, e.latlng.lng);
+        if (gid)
+            selectGroup(gid);
+    });
+
+    function setHover(gid) {
+        hoveredGroup = gid;
+        applyColors(gid);
+        document.querySelectorAll('.legend-item').forEach(el => el.classList.toggle('is-hovered', el.dataset.group === gid));
+    }
+    function clearHover() {
+        hoveredGroup = null;
+        document.querySelectorAll('.legend-item').forEach(el => el.classList.remove('is-hovered'));
+        if (!selectedGroup)
+            clearAllColors();
+    }
+    function legendHover(gid) {
+        if (!selectedGroup)
+            setHover(gid);
+    }
+    function legendUnhover() {
+        if (!selectedGroup)
+            clearHover();
+    }
+
+    // ═══ KLEUR TOEPASSEN ═══
+    function applyColors(gid) {
+        GROEPEN.forEach(g => {
+            const on = g.id === gid;
+            zonesByGroup[g.id]?.setStyle(on ? colorZoneStyle(g.kleur) : greyZoneStyle());
+            if (on)
+                zonesByGroup[g.id]?.bringToFront();
+            markersByGroup[g.id]?.forEach(m => {
+                m.setStyle(on ? colorMarkerStyle(g.kleur) : greyMarkerStyle());
+                if (on)
+                    m.bringToFront();
+            });
+        });
+    }
+    function clearAllColors() {
+        GROEPEN.forEach(g => {
+            zonesByGroup[g.id]?.setStyle(greyZoneStyle());
+            markersByGroup[g.id]?.forEach(m => m.setStyle(greyMarkerStyle()));
+        });
+    }
+
+    // ═══ SELECTEREN: inzoomen + kaart + blijvend actief ═══
+    function selectGroup(gid) {
+        selectedGroup = gid;
+        lastSelectedForReopen = gid;
+        applyColors(gid);
+        document.querySelectorAll('.legend-item').forEach(el => el.classList.toggle('is-active', el.dataset.group === gid));
+        const padded = boundsVoorGroep(gid).pad(0.55);
+        map.flyToBounds(padded, {
+            maxZoom: 13,
+            duration: 0.9
+        });
+        map.once('moveend', () => {
+            spreadMarkers();
+            applyColors(gid);
+            openCard(gid);
+        });
+    }
+
+    // ═══ INFOKAART ═══
+    function buildCardBody(gid) {
+        const g = groep(gid),
+            locs = locatiesVoorGroep(gid);
+        const allD = DEELNEMERS.filter(d => d.groep === gid);
+        const nD = allD.length,
+            nS = [...new Set(allD.map(d => d.school))].length,
+            nB = [...new Set(allD.map(d => d.bestuur))].length,
+            nL = locs.length;
+        const locHTML = locs.map(loc => {
+            const sm = {};
+            loc.leden.forEach(d => {
+                if (!sm[d.school])
+                    sm[d.school] = {
+                        bestuur: d.bestuur,
+                        leden: []
+                    };
+                sm[d.school].leden.push(d.naam);
+            });
+            const rows = Object.entries(sm).map(([sch, info]) => {
+                const lt = privacyMode ? `<span style="color:#aaa">${info.leden.length} deelnemer${info.leden.length > 1 ? 's' : ''}</span>` : info.leden.join(' · ');
+                return `<div class="card-school"><div class="card-school-name">${sch}</div><div class="card-school-bestuur">${info.bestuur}</div><div class="card-school-leden">${lt}</div></div>`;
+            }).join('');
+            return `<div class="card-loc"><div class="card-loc-header"><div class="card-loc-dot" style="background:${g.kleur}"></div><span>📍 ${loc.plaats}</span>${loc.postcode ? `<span class="card-loc-pc">${loc.postcode}</span>` : ''}</div>${rows}</div>`;
+        }).join('');
+        return `<div class="card-stats">
+              <div class="card-stat"><div class="card-stat-n" data-count="${nD}" style="color:${g.kleur}">0</div><div class="card-stat-l">Deelnemers</div></div>
+              <div class="card-stat"><div class="card-stat-n" data-count="${nS}" style="color:${g.kleur}">0</div><div class="card-stat-l">Scholen</div></div>
+              <div class="card-stat"><div class="card-stat-n" data-count="${nB}" style="color:${g.kleur}">0</div><div class="card-stat-l">Besturen</div></div>
+              <div class="card-stat"><div class="card-stat-n" data-count="${nL}" style="color:${g.kleur}">0</div><div class="card-stat-l">Locaties</div></div>
+            </div>
+            <div class="card-section-title">Deelnemende locaties</div>${locHTML}`;
+    }
+    function openCard(gid) {
+        const g = groep(gid);
+        document.getElementById('card-header').style.background = g.kleur;
+        document.getElementById('card-title').textContent = g.naam;
+        document.getElementById('card-vraag').textContent = g.vraag;
+        document.getElementById('card-body').innerHTML = buildCardBody(gid);
+        const card = document.getElementById('info-card');
+        card.style.display = 'flex';
+        card.style.top = '20px';
+        card.style.right = '20px';
+        card.style.left = 'auto';
+        animateCounters();
+    }
+    function closeCard() {
+        // kaart sluiten, maar groep blijft actief
+        document.getElementById('info-card').style.display = 'none';
+    }
+    function animateCounters() {
+        document.querySelectorAll('.card-stat-n[data-count]').forEach(el => {
+            const target = parseInt(el.dataset.count, 10);
+            let cur = 0;
+            const dur = 500,
+                st = dur / Math.max(target, 1);
+            const tick = () => {
+                cur++;
+                el.textContent = cur;
+                if (cur < target)
+                    setTimeout(tick, st);
+            };
+            if (target > 0)
+                setTimeout(tick, 120);
+            else
+                el.textContent = '0';
+        });
+    }
+
+    function resetView() {
+        selectedGroup = null;
+        hoveredGroup = null;
+        document.getElementById('info-card').style.display = 'none';
+        document.querySelectorAll('.legend-item').forEach(el => el.classList.remove('is-active', 'is-hovered'));
+        clearAllColors();
+        map.flyTo(HOME.center, HOME.zoom, {
+            duration: 0.9
+        });
+        map.once('moveend', spreadMarkers);
+    }
+
+    // ═══ KAART SLEPEN ═══
+    (function() {
+        const card = document.getElementById('info-card'),
+            header = document.getElementById('card-header'),
+            wrap = document.getElementById('map-wrap');
+        let drag = false,
+            ox,
+            oy;
+        header.addEventListener('mousedown', e => {
+            if (e.target.id === 'card-close')
+                return;
+            drag = true;
+            const r = card.getBoundingClientRect(),
+                w = wrap.getBoundingClientRect();
+            ox = e.clientX - r.left;
+            oy = e.clientY - r.top;
+            card.style.left = (r.left - w.left) + 'px';
+            card.style.top = (r.top - w.top) + 'px';
+            card.style.right = 'auto';
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', e => {
+            if (!drag)
+                return;
+            const w = wrap.getBoundingClientRect();
+            let nx = e.clientX - w.left - ox,
+                ny = e.clientY - w.top - oy;
+            nx = Math.max(0, Math.min(nx, w.width - card.offsetWidth));
+            ny = Math.max(0, Math.min(ny, w.height - card.offsetHeight));
+            card.style.left = nx + 'px';
+            card.style.top = ny + 'px';
+        });
+        document.addEventListener('mouseup', () => drag = false);
+    })();
+
+    // ═══ PRIVACY ═══
+    function togglePrivacy() {
+        privacyMode = !privacyMode;
+        const btn = document.getElementById('privacy-toggle');
+        btn.textContent = privacyMode ? '👁 Namen tonen' : '👁 Namen verbergen';
+        btn.classList.toggle('active', privacyMode);
+        if (selectedGroup && document.getElementById('info-card').style.display === 'flex') {
+            document.getElementById('card-body').innerHTML = buildCardBody(selectedGroup);
+            animateCounters();
+        }
+    }
+
+    // ═══ ZOOM/PAN → markers opnieuw spreiden ═══
+    map.on('zoomend', () => {
+        spreadMarkers();
+        if (selectedGroup)
+            applyColors(selectedGroup);
+    });
+    map.on('moveend', () => {
+        if (!selectedGroup)
+            spreadMarkers();
+    });
+
+    // ═══ START ═══
+    map.whenReady(() => {
+        tekenKaart();
+        setTimeout(() => {
+            map.flyTo(HOME.center, HOME.zoom, {
+                duration: 1.4
+            });
+            map.once('moveend', spreadMarkers);
+        }, 250);
+    });
+    </script>
+</body>
+</html>
